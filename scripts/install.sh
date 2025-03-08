@@ -56,7 +56,7 @@ echo -e "\n${YELLOW}Setting up PHP repository for ${OS}...${NC}"
 case $OS in
   debian)
     echo "Setting up Sury PHP repository for Debian..."
-    apt-get install -y apt-transport-https lsb-release ca-certificates
+    apt-get install -y apt-transport-https lsb-release ca-certificates gnupg
     wget -qO - https://packages.sury.org/php/apt.gpg | apt-key add -
     echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/sury-php.list
     ;;

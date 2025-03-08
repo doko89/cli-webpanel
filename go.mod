@@ -1,6 +1,6 @@
 module github.com/doko/cli-webpanel
 
-go 1.23.6
+go 1.23
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
