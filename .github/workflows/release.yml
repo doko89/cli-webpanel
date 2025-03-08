@@ -30,6 +30,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           GOARM: ${{ matrix.goarm }}
+        working-directory: ${{ github.workspace }}
         run: |
           mkdir -p bin
 
