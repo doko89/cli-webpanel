@@ -174,7 +174,7 @@ var siteRmCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(siteCmd)
+	RootCmd.AddCommand(siteCmd)
 	siteCmd.AddCommand(siteAddCmd)
 	siteCmd.AddCommand(siteListCmd)
 	siteCmd.AddCommand(siteRmCmd)

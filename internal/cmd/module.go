@@ -139,7 +139,7 @@ var moduleRmCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(moduleCmd)
+	RootCmd.AddCommand(moduleCmd)
 	moduleCmd.AddCommand(moduleListAvailableCmd)
 	moduleCmd.AddCommand(moduleListCmd)
 	moduleCmd.AddCommand(moduleAddCmd)

@@ -100,7 +100,7 @@ var phpModuleRemoveCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(phpCmd)
+	RootCmd.AddCommand(phpCmd)
 	phpCmd.AddCommand(phpListCmd)
 	phpCmd.AddCommand(phpInstallCmd)
 	phpCmd.AddCommand(phpRemoveCmd)
