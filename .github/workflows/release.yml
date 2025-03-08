@@ -1,9 +1,9 @@
-name: Build Binaries
+name: Build and Release Binaries
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*' # Trigger on tags like v1.0.0, v1.2.3
   pull_request:
     branches:
       - main
@@ -24,6 +24,8 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '1.21'
+          cache: true # Enable caching
+          cache-dependency-path: go.sum
 
       - name: Build
         env:
@@ -32,7 +34,7 @@ jobs:
           GOARM: ${{ matrix.goarm }}
         run: |
           mkdir -p bin
-          
+
           # Handle arm special cases
           if [ "${{ matrix.goarch }}" = "arm" ]; then
             if [ "${{ matrix.goarm }}" = "6" ]; then
@@ -56,16 +58,37 @@ jobs:
 
           # Build binary
           if [ "${{ matrix.goarch }}" = "arm" ]; then
-            GOARM=${{ matrix.goarm }} go build -o "bin/${BINARY_NAME}" cmd/webpanel/main.go
+            GOARM=${{ matrix.goarm }} go build -v -o "bin/${BINARY_NAME}" cmd/webpanel/main.go
           else
-            go build -o "bin/${BINARY_NAME}" cmd/webpanel/main.go
+            go build -v -o "bin/${BINARY_NAME}" cmd/webpanel/main.go
           fi
-          
+
           # Create checksums
           sha256sum "bin/${BINARY_NAME}" > "bin/${BINARY_NAME}.sha256"
-          
+
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 #Updated to v4
         with:
           name: binaries-${{ matrix.goos }}-${{ matrix.goarch }}-${{ matrix.goarm }}
           path: bin/
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') # Only run for tags
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all workflow artifacts
+        uses: actions/download-artifact@v4
+      - name: Get the version
+        id: get_version
+        run: echo "version=$(echo ${GITHUB_REF#refs/tags/v})" >> $GITHUB_OUTPUT
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref }}
+          name: Release ${{ steps.get_version.outputs.version }}
+          body: |
+            Binaries for this release are attached below.
+          artifacts: "binaries-*"
+          token: ${{ secrets.GITHUB_TOKEN }}
