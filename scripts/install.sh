@@ -21,6 +21,17 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+# Function to detect OS
+detect_os() {
+  if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    OS=$ID
+  else
+    OS=$(uname -s)
+  fi
+  echo $OS
+}
+
 # Ensure basic tools are installed
 echo -e "\n${YELLOW}Checking basic requirements...${NC}"
 
@@ -38,16 +49,39 @@ if ! command_exists git; then
   apt-get install -y git
 fi
 
+# Setup PHP repository based on OS
+OS=$(detect_os)
+echo -e "\n${YELLOW}Setting up PHP repository for ${OS}...${NC}"
+
+case $OS in
+  debian)
+    echo "Setting up Sury PHP repository for Debian..."
+    apt-get install -y apt-transport-https lsb-release ca-certificates
+    wget -qO - https://packages.sury.org/php/apt.gpg | apt-key add -
+    echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/sury-php.list
+    ;;
+  ubuntu)
+    echo "Setting up Ondrej PHP repository for Ubuntu..."
+    apt-get install -y software-properties-common
+    add-apt-repository -y ppa:ondrej/php
+    ;;
+  *)
+    echo -e "${RED}Unsupported operating system: ${OS}${NC}"
+    exit 1
+    ;;
+esac
+
+# Update package list after adding PHP repository
+apt-get update
+
 # Install required packages
 echo -e "\n${YELLOW}Installing required packages...${NC}"
 
 # Add Caddy repository
 if ! command_exists caddy; then
   echo "deb [trusted=yes] https://apt.fury.io/caddy/ /" | tee /etc/apt/sources.list.d/caddy-fury.list
+  apt-get update
 fi
-
-# Update package list
-apt-get update
 
 # Install packages
 apt-get install -y \
@@ -56,14 +90,7 @@ apt-get install -y \
   golang \
   caddy \
   mariadb-server \
-  mariadb-client \
-  php-fpm \
-  php-mysql \
-  php-curl \
-  php-gd \
-  php-mbstring \
-  php-xml \
-  php-zip
+  mariadb-client
 
 # Create directory structure
 echo -e "\n${YELLOW}Creating directory structure...${NC}"
@@ -112,15 +139,6 @@ EOF
 
 # Create module configuration files
 modules_dir="/usr/local/webpanel/config/modules"
-
-# PHP module
-cat > "$modules_dir/php.conf" <<EOF
-(php_config) {
-    php_fastcgi unix//run/php/php8.1-fpm.sock
-    encode gzip
-    file_server
-}
-EOF
 
 # SPA module
 cat > "$modules_dir/spa.conf" <<EOF
@@ -256,14 +274,13 @@ find /backup/weekly -type f -mtime +30 -delete
 EOF
 chmod +x /etc/cron.weekly/webpanel-cleanup
 
-# Restart services
-systemctl restart caddy
-systemctl restart php8.1-fpm
-systemctl restart mariadb
-
 # Display success message
 echo -e "\n${GREEN}Installation completed successfully!${NC}"
 echo -e "\nYou can now use the webpanel command to manage your server."
 echo -e "Run ${YELLOW}webpanel --help${NC} to see available commands."
+echo -e "\nTo install PHP:"
+echo -e "Run ${YELLOW}webpanel php list available${NC} to see available PHP versions"
+echo -e "Run ${YELLOW}webpanel php install <version>${NC} to install a PHP version"
+echo -e "Run ${YELLOW}webpanel php module-available <version>${NC} to see available modules"
 echo -e "\nNote: The webpanel command should be run as a non-root user."
 echo -e "Example: ${YELLOW}sudo -u your_username webpanel status${NC}"
