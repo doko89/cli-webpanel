@@ -43,25 +43,22 @@ Sebuah tool CLI untuk mengelola server atau VPS dengan pengalaman sysadmin yang 
 - Koneksi internet untuk instalasi
 - Tidak bisa dijalankan sebagai user root (untuk keamanan)
 
-## Instalasi
+## Quick Install
 
-1. Download script instalasi:
-```bash
-curl -O https://raw.githubusercontent.com/doko/cli-webpanel/main/scripts/install.sh
-```
+Untuk sistem yang fresh install, jalankan perintah berikut:
 
-2. Berikan permission eksekusi:
 ```bash
+# Install curl jika belum ada
+apt-get update && apt-get install -y curl
+
+# Download dan jalankan script instalasi
+curl -O https://raw.githubusercontent.com/doko89/cli-webpanel/main/scripts/install.sh
 chmod +x install.sh
-```
-
-3. Jalankan script instalasi:
-```bash
 sudo ./install.sh
 ```
 
-Script akan:
-- Menginstall Caddy dan MariaDB
+Script akan secara otomatis:
+- Menginstall semua dependensi yang diperlukan (curl, caddy, mariadb, dll)
 - Menyiapkan struktur direktori
 - Mengkonfigurasi permission
 - Menginstall CLI tool
@@ -155,6 +152,15 @@ webpanel monitor
 ## Struktur Direktori
 
 ```
+/usr/local/webpanel/
+    ├── config/
+    │   ├── global/         # Konfigurasi global
+    │   ├── modules/        # Modul konfigurasi
+    │   └── sites/          # Konfigurasi per-site
+    ├── lib/
+    │   └── modules/        # Module implementations
+    └── logs/               # Application logs
+
 /apps/sites/
     ├── domain1.com/
     │   ├── public/
@@ -163,13 +169,10 @@ webpanel monitor
         ├── public/
         └── logs/
 
-/usr/local/webpanel/
-    ├── config/
-    │   ├── global/
-    │   └── sites/
-    ├── lib/
-    │   └── modules/
-    └── logs/
+/var/log/webpanel/
+    ├── caddy/             # Log Caddy per domain
+    ├── mariadb/           # Log MariaDB
+    └── webpanel/          # Log aplikasi
 
 /backup/
     ├── daily/
@@ -180,19 +183,20 @@ webpanel monitor
         └── dbname/
 ```
 
-## Keamanan
+## Development
 
-- Tool tidak bisa dijalankan sebagai root user
-- SSL/TLS otomatis dengan Caddy
-- Firewall configuration
-- Enkripsi backup
-- Secure configuration storage
+Untuk development:
 
-## Debugging
-
-Jika terjadi masalah, cek log di:
 ```bash
-tail -f /usr/local/webpanel/logs/webpanel.log
+# Clone repository
+git clone git@github.com:doko89/cli-webpanel.git
+cd cli-webpanel
+
+# Install dependencies
+go mod download
+
+# Build aplikasi
+go build -o webpanel cmd/webpanel/main.go
 ```
 
 ## Kontribusi

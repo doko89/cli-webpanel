@@ -21,6 +21,16 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+# Ensure basic tools are installed
+echo -e "\n${YELLOW}Checking basic requirements...${NC}"
+
+# Install curl if not present
+if ! command_exists curl; then
+  echo "Installing curl..."
+  apt-get update
+  apt-get install -y curl
+fi
+
 # Install required packages
 echo -e "\n${YELLOW}Installing required packages...${NC}"
 
@@ -178,6 +188,12 @@ chmod -R 755 /backup
 # Install Go if not present
 if ! command_exists go; then
   echo -e "\n${YELLOW}Installing Go...${NC}"
+  
+  # Install wget if not present
+  if ! command_exists wget; then
+    apt-get install -y wget
+  fi
+  
   wget -q -O /tmp/go.tar.gz https://go.dev/dl/$(curl -s https://go.dev/VERSION?m=text).linux-amd64.tar.gz
   rm -rf /usr/local/go
   tar -C /usr/local -xzf /tmp/go.tar.gz
@@ -188,10 +204,16 @@ if ! command_exists go; then
   source /etc/profile.d/go.sh
 fi
 
+# Install git if not present
+if ! command_exists git; then
+  echo -e "\n${YELLOW}Installing git...${NC}"
+  apt-get install -y git
+fi
+
 # Build and install webpanel CLI
 echo -e "\n${YELLOW}Building and installing webpanel CLI...${NC}"
 mkdir -p /tmp/webpanel-build
-git clone https://github.com/doko/cli-webpanel.git /tmp/webpanel-build
+git clone https://github.com/doko89/cli-webpanel.git /tmp/webpanel-build
 cd /tmp/webpanel-build
 go build -o webpanel cmd/webpanel/main.go
 mv webpanel /usr/local/bin/
