@@ -5,15 +5,20 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: '1.21'
 
@@ -22,20 +27,21 @@ jobs:
           chmod +x scripts/build.sh
           ./scripts/build.sh
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
+      - name: Generate release notes
+        run: |
+          echo "## Release Notes" > RELEASE_NOTES.md
+          echo "CLI Web Panel v${GITHUB_REF#refs/tags/}" >> RELEASE_NOTES.md
+          echo "### Available Binaries" >> RELEASE_NOTES.md
+          echo "- linux/amd64 (64-bit x86)" >> RELEASE_NOTES.md
+          echo "- linux/386 (32-bit x86)" >> RELEASE_NOTES.md
+          echo "- linux/arm-v6 (Raspberry Pi 1, Zero)" >> RELEASE_NOTES.md
+          echo "- linux/arm-v7 (Raspberry Pi 2, 3)" >> RELEASE_NOTES.md
+          echo "- linux/arm64 (64-bit ARM)" >> RELEASE_NOTES.md
 
-      - name: Upload binaries
+      - name: Release
         uses: softprops/action-gh-release@v1
         with:
+          body_path: RELEASE_NOTES.md
           files: |
             release/webpanel-linux-amd64
             release/webpanel-linux-386
@@ -47,5 +53,3 @@ jobs:
             release/webpanel-linux-arm-v6.sha256
             release/webpanel-linux-arm-v7.sha256
             release/webpanel-linux-arm64.sha256
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
