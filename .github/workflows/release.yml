@@ -24,8 +24,11 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '1.21'
-          cache: true # Enable caching
-          cache-dependency-path: go.sum
+          cache: false # Disable module caching
+      
+      - name: Clean Go mod
+        run: |
+          go clean -modcache
 
       - name: Build
         env:
