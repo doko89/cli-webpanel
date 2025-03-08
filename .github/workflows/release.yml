@@ -80,6 +80,9 @@ jobs:
     steps:
       - name: Download all workflow artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: release_bin
+          
       - name: Get the version
         id: get_version
         run: echo "version=$(echo ${GITHUB_REF#refs/tags/v})" >> $GITHUB_OUTPUT
@@ -90,5 +93,5 @@ jobs:
           name: Release ${{ steps.get_version.outputs.version }}
           body: |
             Binaries for this release are attached below.
-          artifacts: "binaries-*"
+          artifacts: "release_bin/*" # now we upload the content of the release_bin.
           token: ${{ secrets.GITHUB_TOKEN }}
