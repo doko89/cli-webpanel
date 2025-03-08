@@ -1,16 +1,21 @@
-name: Release
+name: Build Binaries
 
 on:
   push:
-    tags:
-      - 'v*'
-
-permissions:
-  contents: write
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: [amd64, 386, arm, arm64]
+        goarm: ['', 6, 7] # goarm only apply for arm
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,31 +25,47 @@ jobs:
         with:
           go-version: '1.21'
 
-      - name: Set VERSION env
-        run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
-
-      - name: Build binaries
-        run: |
-          chmod +x scripts/build.sh
-          ./scripts/build.sh
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+      - name: Build
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+        run: |
+          mkdir -p bin
+          
+          # Handle arm special cases
+          if [ "${{ matrix.goarch }}" = "arm" ]; then
+            if [ "${{ matrix.goarm }}" = "6" ]; then
+              BINARY_NAME="webpanel-linux-arm-v6"
+            elif [ "${{ matrix.goarm }}" = "7" ]; then
+              BINARY_NAME="webpanel-linux-arm-v7"
+            else
+              echo "Invalid GOARM value for arm architecture"
+              exit 1
+            fi
+          elif [ "${{ matrix.goarch }}" = "amd64" ]; then
+            BINARY_NAME="webpanel-linux-amd64"
+          elif [ "${{ matrix.goarch }}" = "386" ]; then
+            BINARY_NAME="webpanel-linux-386"
+          elif [ "${{ matrix.goarch }}" = "arm64" ]; then
+            BINARY_NAME="webpanel-linux-arm64"
+          else
+            echo "Invalid GOARCH value"
+            exit 1
+          fi
+
+          # Build binary
+          if [ "${{ matrix.goarch }}" = "arm" ]; then
+            GOARM=${{ matrix.goarm }} go build -o "bin/${BINARY_NAME}" cmd/webpanel/main.go
+          else
+            go build -o "bin/${BINARY_NAME}" cmd/webpanel/main.go
+          fi
+          
+          # Create checksums
+          sha256sum "bin/${BINARY_NAME}" > "bin/${BINARY_NAME}.sha256"
+          
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
         with:
-          name: Release ${{ env.VERSION }}
-          body_path: release/release-notes.md
-          draft: false
-          prerelease: false
-          files: |
-            release/webpanel-linux-amd64
-            release/webpanel-linux-386
-            release/webpanel-linux-arm64
-            release/webpanel-linux-arm-v6
-            release/webpanel-linux-arm-v7
-            release/webpanel-linux-amd64.sha256
-            release/webpanel-linux-386.sha256
-            release/webpanel-linux-arm64.sha256
-            release/webpanel-linux-arm-v6.sha256
-            release/webpanel-linux-arm-v7.sha256
+          name: binaries-${{ matrix.goos }}-${{ matrix.goarch }}-${{ matrix.goarm }}
+          path: bin/
