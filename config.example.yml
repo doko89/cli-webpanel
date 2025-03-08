@@ -1,0 +1,97 @@
+# CLI Web Panel Configuration Example
+# Copy this file to ~/.webpanel.yml to customize settings
+
+# Directory Settings
+directories:
+  web_root: "/apps/sites"           # Root directory for websites
+  config: "/usr/local/webpanel/config"  # Configuration directory
+  modules: "/usr/local/webpanel/lib/modules"  # Modules directory
+  backup: "/backup"                 # Backup directory
+  logs: "/usr/local/webpanel/logs"     # Log directory
+
+# Web Server Settings
+web_server:
+  type: "caddy"                     # Web server type (currently only supports caddy)
+  config_dir: "/etc/caddy"         # Caddy configuration directory
+  service_name: "caddy"            # Service name for systemctl
+  user: "www-data"                 # Web server user
+  group: "www-data"                # Web server group
+
+# Database Settings
+database:
+  type: "mariadb"                  # Database type (currently only supports mariadb)
+  host: "localhost"                # Database host
+  port: 3306                       # Database port
+  service_name: "mariadb"         # Service name for systemctl
+  root_user: "root"               # Database root user
+
+# Backup Settings
+backup:
+  daily:
+    enabled: true                  # Enable daily backups by default
+    time: "01:00"                 # Time to run daily backups (24h format)
+    retention_days: 7             # Number of days to keep daily backups
+  weekly:
+    enabled: true                 # Enable weekly backups by default
+    day: "sunday"                # Day to run weekly backups
+    time: "02:00"                # Time to run weekly backups (24h format)
+    retention_days: 30           # Number of days to keep weekly backups
+  compress: true                 # Compress backups using gzip
+
+# Module Settings
+modules:
+  php:
+    enabled: true                # Enable PHP module by default
+    version: "8.2"              # Default PHP version
+    socket: "/var/run/php/php-fpm.sock"  # PHP-FPM socket path
+  
+  spa:
+    enabled: false              # Single Page Application module disabled by default
+  
+  security:
+    enabled: true              # Enable security module by default
+    headers:
+      - "Strict-Transport-Security: max-age=31536000"
+      - "X-Content-Type-Options: nosniff"
+      - "X-Frame-Options: DENY"
+      - "X-XSS-Protection: 1; mode=block"
+      - "Content-Security-Policy: default-src 'self'"
+      - "Referrer-Policy: no-referrer-when-downgrade"
+  
+  header:
+    enabled: true              # Enable header module by default
+    remove:
+      - "Server"
+    add:
+      - "X-Powered-By: webpanel"
+
+# Monitoring Settings
+monitoring:
+  enabled: true                # Enable system monitoring
+  check_interval: 60          # Check system status every 60 seconds
+  log_retention_days: 7       # Keep monitoring logs for 7 days
+  metrics:
+    - cpu
+    - memory
+    - disk
+    - services
+
+# Security Settings
+security:
+  ssl:
+    enabled: true             # Enable SSL by default (using Caddy's automatic HTTPS)
+    email: ""                # Email for Let's Encrypt notifications
+  
+  firewall:
+    enabled: true            # Enable basic firewall rules
+    allow_ports:             # Ports to allow through firewall
+      - 80
+      - 443
+      - 22
+
+# Log Settings
+logging:
+  level: "info"              # Log level (debug, info, warn, error)
+  max_size: 100             # Maximum log file size in MB
+  max_files: 5              # Number of log files to keep
+  compress_logs: true       # Compress old log files
