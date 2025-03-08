@@ -51,6 +51,9 @@ apt-get update
 
 # Install packages
 apt-get install -y \
+  curl \
+  git \
+  golang \
   caddy \
   mariadb-server \
   mariadb-client \
@@ -191,25 +194,6 @@ chown -R www-data:www-data /var/log/webpanel
 chmod -R 755 /var/log/webpanel
 chown -R www-data:www-data /backup
 chmod -R 755 /backup
-
-# Install Go if not present
-if ! command_exists go; then
-  echo -e "\n${YELLOW}Installing Go...${NC}"
-  
-  # Install wget if not present
-  if ! command_exists wget; then
-    apt-get install -y wget
-  fi
-  
-  wget -q -O /tmp/go.tar.gz https://go.dev/dl/$(curl -s https://go.dev/VERSION?m=text).linux-amd64.tar.gz
-  rm -rf /usr/local/go
-  tar -C /usr/local -xzf /tmp/go.tar.gz
-  rm /tmp/go.tar.gz
-  
-  # Add Go to PATH
-  echo 'export PATH=$PATH:/usr/local/go/bin' > /etc/profile.d/go.sh
-  source /etc/profile.d/go.sh
-fi
 
 # Build and install webpanel CLI
 echo -e "\n${YELLOW}Building and installing webpanel CLI...${NC}"
