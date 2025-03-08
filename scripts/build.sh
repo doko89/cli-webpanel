@@ -6,47 +6,54 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-VERSION="v0.1.0"
+VERSION=${GITHUB_REF_NAME:-v0.1.0}
 BINARY_NAME="webpanel"
-PLATFORMS=("linux/amd64" "linux/386" "linux/arm" "linux/arm64")
 
 # Create release directory
 rm -rf release
 mkdir -p release
 
-# Build for each platform
-for platform in "${PLATFORMS[@]}"
-do
-    # Split platform into OS and architecture
-    IFS='/' read -r -a array <<< "$platform"
-    OS="${array[0]}"
-    ARCH="${array[1]}"
-    
-    echo -e "${YELLOW}Building for $OS/$ARCH...${NC}"
-    
-    # Set environment variables for cross-compilation
-    export GOOS=$OS
-    export GOARCH=$ARCH
-    
-    # Build binary
-    OUTPUT="release/${BINARY_NAME}-${OS}-${ARCH}"
-    if [ "$ARCH" = "arm" ]; then
-        # Build for different ARM versions (v6, v7)
-        for VERSION in 6 7; do
-            export GOARM=$VERSION
-            go build -o "${OUTPUT}-v${VERSION}" cmd/webpanel/main.go
-            echo -e "${GREEN}Built ${OUTPUT}-v${VERSION}${NC}"
-        done
-    else
-        go build -o "$OUTPUT" cmd/webpanel/main.go
-        echo -e "${GREEN}Built $OUTPUT${NC}"
-    fi
-    
-    # Create checksums
-    if [ -f "$OUTPUT" ]; then
-        sha256sum "$OUTPUT" > "${OUTPUT}.sha256"
-    fi
-done
+echo -e "${YELLOW}Building for linux/amd64...${NC}"
+GOOS=linux GOARCH=amd64 go build -o "release/${BINARY_NAME}-linux-amd64" cmd/webpanel/main.go
+sha256sum "release/${BINARY_NAME}-linux-amd64" > "release/${BINARY_NAME}-linux-amd64.sha256"
 
-echo -e "\n${GREEN}Build complete!${NC}"
-echo -e "Binaries are available in the release directory"
+echo -e "${YELLOW}Building for linux/386...${NC}"
+GOOS=linux GOARCH=386 go build -o "release/${BINARY_NAME}-linux-386" cmd/webpanel/main.go
+sha256sum "release/${BINARY_NAME}-linux-386" > "release/${BINARY_NAME}-linux-386.sha256"
+
+echo -e "${YELLOW}Building for linux/arm64...${NC}"
+GOOS=linux GOARCH=arm64 go build -o "release/${BINARY_NAME}-linux-arm64" cmd/webpanel/main.go
+sha256sum "release/${BINARY_NAME}-linux-arm64" > "release/${BINARY_NAME}-linux-arm64.sha256"
+
+echo -e "${YELLOW}Building for linux/arm v6...${NC}"
+GOOS=linux GOARCH=arm GOARM=6 go build -o "release/${BINARY_NAME}-linux-arm-v6" cmd/webpanel/main.go
+sha256sum "release/${BINARY_NAME}-linux-arm-v6" > "release/${BINARY_NAME}-linux-arm-v6.sha256"
+
+echo -e "${YELLOW}Building for linux/arm v7...${NC}"
+GOOS=linux GOARCH=arm GOARM=7 go build -o "release/${BINARY_NAME}-linux-arm-v7" cmd/webpanel/main.go
+sha256sum "release/${BINARY_NAME}-linux-arm-v7" > "release/${BINARY_NAME}-linux-arm-v7.sha256"
+
+# Create release notes
+cat > release/release-notes.md <<EOF
+## CLI Web Panel ${VERSION}
+
+### Supported Architectures:
+- linux/amd64 (64-bit x86)
+- linux/386 (32-bit x86)
+- linux/arm64 (64-bit ARM)
+- linux/arm-v6 (Raspberry Pi 1, Zero)
+- linux/arm-v7 (Raspberry Pi 2, 3)
+
+### Installation:
+\`\`\`bash
+curl -fsSL https://raw.githubusercontent.com/doko89/cli-webpanel/main/scripts/install.sh | sudo bash
+\`\`\`
+
+### SHA256 Checksums:
+\`\`\`
+$(cat release/*.sha256)
+\`\`\`
+EOF
+
+echo -e "${GREEN}Build complete! Binaries and checksums available in release/ directory${NC}"
+ls -l release/

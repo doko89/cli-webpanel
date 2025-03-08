@@ -9,47 +9,42 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+        uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: '1.21'
 
+      - name: Set VERSION env
+        run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+
       - name: Build binaries
         run: |
           chmod +x scripts/build.sh
           ./scripts/build.sh
 
-      - name: Generate release notes
-        run: |
-          echo "## Release Notes" > RELEASE_NOTES.md
-          echo "CLI Web Panel v${GITHUB_REF#refs/tags/}" >> RELEASE_NOTES.md
-          echo "### Available Binaries" >> RELEASE_NOTES.md
-          echo "- linux/amd64 (64-bit x86)" >> RELEASE_NOTES.md
-          echo "- linux/386 (32-bit x86)" >> RELEASE_NOTES.md
-          echo "- linux/arm-v6 (Raspberry Pi 1, Zero)" >> RELEASE_NOTES.md
-          echo "- linux/arm-v7 (Raspberry Pi 2, 3)" >> RELEASE_NOTES.md
-          echo "- linux/arm64 (64-bit ARM)" >> RELEASE_NOTES.md
-
-      - name: Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          body_path: RELEASE_NOTES.md
+          name: Release ${{ env.VERSION }}
+          body_path: release/release-notes.md
+          draft: false
+          prerelease: false
           files: |
             release/webpanel-linux-amd64
             release/webpanel-linux-386
+            release/webpanel-linux-arm64
             release/webpanel-linux-arm-v6
             release/webpanel-linux-arm-v7
-            release/webpanel-linux-arm64
             release/webpanel-linux-amd64.sha256
             release/webpanel-linux-386.sha256
+            release/webpanel-linux-arm64.sha256
             release/webpanel-linux-arm-v6.sha256
             release/webpanel-linux-arm-v7.sha256
-            release/webpanel-linux-arm64.sha256
