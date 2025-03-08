@@ -21,6 +21,31 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+# Function to detect OS and architecture
+detect_arch() {
+  ARCH=$(uname -m)
+  case "$ARCH" in
+    x86_64)
+      echo "amd64"
+      ;;
+    i686|i386)
+      echo "386"
+      ;;
+    aarch64)
+      echo "arm64"
+      ;;
+    armv7*|armv8*)
+      echo "arm-v7"
+      ;;
+    armv6*)
+      echo "arm-v6"
+      ;;
+    *)
+      echo "unknown"
+      ;;
+  esac
+}
+
 # Function to detect OS
 detect_os() {
   if [ -f /etc/os-release ]; then
@@ -49,6 +74,21 @@ if ! command_exists git; then
   apt-get install -y git
 fi
 
+# Download appropriate binary
+VERSION="v0.1.0"
+OS="linux"
+ARCH=$(detect_arch)
+
+if [ "$ARCH" = "unknown" ]; then
+  echo -e "${RED}Unsupported architecture${NC}"
+  exit 1
+fi
+
+echo -e "\n${YELLOW}Downloading webpanel binary for $OS/$ARCH...${NC}"
+BINARY_URL="https://github.com/doko89/cli-webpanel/releases/download/${VERSION}/webpanel-${OS}-${ARCH}"
+curl -L -o /usr/local/bin/webpanel "$BINARY_URL"
+chmod +x /usr/local/bin/webpanel
+
 # Setup PHP repository based on OS
 OS=$(detect_os)
 echo -e "\n${YELLOW}Setting up PHP repository for ${OS}...${NC}"
@@ -56,7 +96,7 @@ echo -e "\n${YELLOW}Setting up PHP repository for ${OS}...${NC}"
 case $OS in
   debian)
     echo "Setting up Sury PHP repository for Debian..."
-    apt-get install -y apt-transport-https lsb-release ca-certificates gnupg
+    apt-get install -y apt-transport-https lsb-release ca-certificates
     wget -qO - https://packages.sury.org/php/apt.gpg | apt-key add -
     echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/sury-php.list
     ;;
@@ -87,7 +127,6 @@ fi
 apt-get install -y \
   curl \
   git \
-  golang \
   caddy \
   mariadb-server \
   mariadb-client
@@ -213,16 +252,6 @@ chmod -R 755 /var/log/webpanel
 chown -R www-data:www-data /backup
 chmod -R 755 /backup
 
-# Build and install webpanel CLI
-echo -e "\n${YELLOW}Building and installing webpanel CLI...${NC}"
-mkdir -p /tmp/webpanel-build
-git clone https://github.com/doko89/cli-webpanel.git /tmp/webpanel-build
-cd /tmp/webpanel-build
-go build -o webpanel cmd/webpanel/main.go
-mv webpanel /usr/local/bin/
-cd /
-rm -rf /tmp/webpanel-build
-
 # Set up logrotate
 echo -e "\n${YELLOW}Configuring log rotation...${NC}"
 cat > /etc/logrotate.d/webpanel <<EOF
@@ -273,6 +302,11 @@ cat > /etc/cron.weekly/webpanel-cleanup <<EOF
 find /backup/weekly -type f -mtime +30 -delete
 EOF
 chmod +x /etc/cron.weekly/webpanel-cleanup
+
+# Restart services
+systemctl restart caddy
+systemctl restart php8.1-fpm
+systemctl restart mariadb
 
 # Display success message
 echo -e "\n${GREEN}Installation completed successfully!${NC}"
