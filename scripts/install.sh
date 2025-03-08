@@ -24,11 +24,18 @@ command_exists() {
 # Ensure basic tools are installed
 echo -e "\n${YELLOW}Checking basic requirements...${NC}"
 
-# Install curl if not present
+# Update package list
+apt-get update
+
+# Install curl and git if not present
 if ! command_exists curl; then
   echo "Installing curl..."
-  apt-get update
   apt-get install -y curl
+fi
+
+if ! command_exists git; then
+  echo "Installing git..."
+  apt-get install -y git
 fi
 
 # Install required packages
@@ -202,12 +209,6 @@ if ! command_exists go; then
   # Add Go to PATH
   echo 'export PATH=$PATH:/usr/local/go/bin' > /etc/profile.d/go.sh
   source /etc/profile.d/go.sh
-fi
-
-# Install git if not present
-if ! command_exists git; then
-  echo -e "\n${YELLOW}Installing git...${NC}"
-  apt-get install -y git
 fi
 
 # Build and install webpanel CLI
